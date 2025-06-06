@@ -49,28 +49,20 @@ function RemoveManagerFromSafehouse(safehouseKey, managerName, issuerName)
     SaveSafehouseManagers();
 end
 
-function compositeKey(safehouse)
-    return string.format("%s|%d,%d|%d,%d|%d", safehouse:getTitle(), getX(), getY(), getX2(), getY2(), getW());
-end
-
 function OnClientCommand(module, command, player, args)
     if module ~= "SafehouseLine" then return end;
     if not args then return end;
 
-    if command == "AddSafehouseManager" then
-        if not (args.safehouse or args.manager or args.issuer) then return end;
+    if not (args.safehouse or args.manager or args.issuer) then return end;
 
-        local key = compositeKey(args.safehouse);
+    local key = args.safehouse:getId();
+    if not key then return end;
+
+    if command == "AddSafehouseManager" then
         AddManagerToSafehouse(key, args.manager, args.issuer);
     elseif command == "RemoveSafehouseManager" then
-    
-        if not (args.safehouse or args.manager or args.issuer) then return end;
-
-        local key = compositeKey(args.safehouse);
         RemoveManagerToSafehouse(key, args.manager, args.issuer);
     end
-
-    
 end
 
 

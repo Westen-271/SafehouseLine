@@ -1,6 +1,6 @@
 if isServer() then return end;
 
-local SafehouseManagersCache = {};
+SafehouseManagersCache = {};
 
 SafehouseClient = {};
 
@@ -17,6 +17,18 @@ function SafehouseClient.RemoveSafehouseManager(safehouse, newManager)
     sendClientCommand(getPlayer(), "SafehouseLine", "RemoveSafehouseManager", { safehouse = safehouse, manager = newManager:getUsername(), issuer = getPlayer():getUsername() });
 end
 
+-------
+
+function SafehouseClient.GetSafehouseManagers(safehouse)
+    local key = safehouse:getId();
+    if not key then return {} end;
+    
+    if not SafehouseManagersCache[key] then return {} end;
+
+    return SafehouseManagersCache[key];
+end
+
 Events.OnReceiveGlobalModData.Add(SafehouseClient.OnReceiveGlobalModData);
+
 
 return SafehouseClient;
