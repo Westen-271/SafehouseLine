@@ -47,8 +47,6 @@ function ISSafehouseUI:onClickRemoveManager(button)
 end
 
 function ISSafehouseUI:onMouseDown_List(x, y) -- NOTE, the self of this is the playerList itself!
-    print("SafehouseLine - onMouseDown");
-
     local row = self:rowAt(x, y);
     if not row or row == -1 then return; end
 
@@ -113,6 +111,20 @@ function ISSafehouseUI:updateManagerButtons()
     end
 end
 
+
+function ISSafehouseUI:drawPlayers(y, item, alt)
+    local a = 0.9;
+
+    self:drawRectBorder(0, (y), self:getWidth(), self.itemheight - 1, a, self.borderColor.r, self.borderColor.g, self.borderColor.b);
+    if self.selected == item.index then
+        self:drawRect(0, (y), self:getWidth(), self.itemheight - 1, 0.3, 0.7, 0.35, 0.15);
+    end
+
+    self:drawText(item.text, 10, y + 2, 1, 1, 1, a, self.font);
+
+    return y + self.itemheight;
+end
+
 --[[
     OVERRIDE DEFAULT SAFEHOUSE UI INIT FUNCTIONALITY
     Call initial functionality.
@@ -136,11 +148,10 @@ function ISSafehouseUI:initialise()
     self.mgrBtn = mgrBtn;
     self.mgrBtn.enable = false;
 
-    ---
-
     -- Override vanilla functionality to allow managers to add players.
     self.addPlayer.enable = self:isOwner() or self:hasPrivilegedAccessLevel() or SafehouseClient.IsManager(getPlayer(), self.safehouse);
     self.playerList.onMouseDown = self.onMouseDown_List;
+    self.playerList.doDrawItem = self.drawPlayers;
 
     self:populateList();
     self:updateManagerButtons();
@@ -148,24 +159,27 @@ end
 
 local vanillaPlayerListFunction = ISSafehouseUI.populateList;
 function ISSafehouseUI:populateList()
+    print("Override PopulateList");
+
     local selected = self.playerList.selected;
     self.playerList:clear();
 
     for i = 0, self.safehouse:getPlayers():size() - 1 do
+        print("Iterating through SH player " .. tostring(i));
+
         local newPlayer = {};
         newPlayer.name = self.safehouse:getPlayers():get(i);
 
         local isManager = SafehouseClient.IsManagerEx(newPlayer.name, self.safehouse);
 
-        local lineStr = newPlayer.name;
-
-        if isManager then
-            lineStr = lineStr .. " - Manager";
-        end
-
         if newPlayer.name ~= self.safehouse:getOwner() or isDebugEnabled() then
-            self.playerList:addItem(lineStr, newPlayer);
+            if isManager then
+                self.playerList:addItem(tostring(newPlayer.name .. " - Manager"), newPlayer);
+            else
+                self.playerList:addItem(newPlayer.name, newPlayer);
+            end
         end;
     end;
+
     self.playerList.selected = math.min(selected, #self.playerList.items);
 end

@@ -25,6 +25,8 @@ function SafehouseClient.AddSafehouseManager(safehouse, newManager)
         SafehouseManagersCache[id] = {};
     end
 
+    if SafehouseClient.IsManager(newManager, safehouse) then return end;
+
     table.insert(SafehouseManagersCache[id], newManager:getUsername());
 
     sendClientCommand(getPlayer(), "SafehouseLine", "AddSafehouseManager", { safehouse = id, manager = newManager:getUsername(), issuer = getPlayer():getUsername() });
@@ -41,6 +43,8 @@ function SafehouseClient.RemoveSafehouseManager(safehouse, newManager)
         SafehouseManagersCache[id] = {};
     end
 
+    if not SafehouseClient.IsManager(newManager, safehouse) then return end;
+
     for i, mgr in ipairs(SafehouseManagersCache[id]) do
         if mgr == newManager:getUsername() then
             table.remove(SafehouseManagersCache[id], i);
@@ -51,6 +55,12 @@ function SafehouseClient.RemoveSafehouseManager(safehouse, newManager)
 end
 
 -------
+---
+---
+--
+function SafehouseClient.getUIFontScale()
+	return 1 + (getCore():getOptionFontSize() - 1) / 4;
+end
 
 function SafehouseClient.IsManager(player, safehouse)
     if not player or not safehouse then return false end;
@@ -69,7 +79,8 @@ function SafehouseClient.IsManagerEx(playerName, safehouse)
     if not mgrs or #mgrs == 0 then return false end;
 
     for i, v in ipairs(mgrs) do
-        if mgrs[i] == playerName then
+
+        if v == playerName then
             return true;
         end
     end

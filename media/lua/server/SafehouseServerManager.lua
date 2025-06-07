@@ -66,6 +66,7 @@ function RemoveManagerFromSafehouse(safehouseKey, managerName, issuerName)
 
     for i, v in ipairs(SafehouseManager[safehouseKey]) do
         local iteratedManager = SafehouseManager[safehouseKey][i];
+        print("RemoveManagerFromSafehouse - " .. tostring(iteratedManager));
         if iteratedManager and iteratedManager == managerName then
             table.remove(SafehouseManager[safehouseKey], i);
         end
