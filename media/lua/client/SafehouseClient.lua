@@ -8,56 +8,35 @@ local SANDBOX_OPTIONS = getSandboxOptions();
 
 function SafehouseClient.OnReceiveGlobalModData(key, data)
     if key ~= "SafehouseLine_Managers" then return end;
+
     SafehouseManagersCache = data;
+    print("OnReceiveGlobalModData - updated SafehouseManagersCache on client.");
+
+    if ISSafehouseUI.instance then
+        ISSafehouseUI.instance:populateList();
+        ISSafehouseUI.instance:updateManagerButtons();
+    end
+end
+
+function SafehouseClient.OnInitGlobalModData(newGame)
+    SafehouseManagersCache = ModData.getOrCreate("SafehouseLine_Managers");
+    ModData.request("SafehouseLine_Managers");
 end
 
 function SafehouseClient.AddSafehouseManager(safehouse, newManager)
-    -- We need to do this both locally and server-side, because there may be a delay between the server receiving and transmitting
-    -- the updated mod data, which then will cause a discrepenacy in the UI.
-    -- If it is faster than the time to render the UI, then this will not be a problem as it will be overwritten anyway.
-    if not safehouse then return end;
-    if not newManager then return end;
-
-    local id = safehouse:getId();
-    if not id then return end;
-
-    if not SafehouseManagersCache[id] then
-        SafehouseManagersCache[id] = {};
-    end
-
     if SafehouseClient.IsManager(newManager, safehouse) then return end;
 
-    table.insert(SafehouseManagersCache[id], newManager:getUsername());
-
+    local id  = SafehouseClient.GetSafehouseKey(safehouse);
     sendClientCommand(getPlayer(), "SafehouseLine", "AddSafehouseManager", { safehouse = id, manager = newManager:getUsername(), issuer = getPlayer():getUsername() });
 end
 
 function SafehouseClient.RemoveSafehouseManager(safehouse, newManager)
-    if not safehouse then return end;
-    if not newManager then return end;
-
-    local id = safehouse:getId();
-    if not id then return end;
-
-    if not SafehouseManagersCache[id] then
-        SafehouseManagersCache[id] = {};
-    end
-
     if not SafehouseClient.IsManager(newManager, safehouse) then return end;
 
-    for i, mgr in ipairs(SafehouseManagersCache[id]) do
-        if mgr == newManager:getUsername() then
-            table.remove(SafehouseManagersCache[id], i);
-        end
-    end
-
+    local id  = SafehouseClient.GetSafehouseKey(safehouse);
     sendClientCommand(getPlayer(), "SafehouseLine", "RemoveSafehouseManager", { safehouse = id, manager = newManager:getUsername(), issuer = getPlayer():getUsername() });
 end
 
--------
----
----
---
 function SafehouseClient.getUIFontScale()
 	return 1 + (getCore():getOptionFontSize() - 1) / 4;
 end
@@ -65,7 +44,6 @@ end
 function SafehouseClient.IsManager(player, safehouse)
     if not player or not safehouse then return false end;
 
-    local mgrs = SafehouseClient.GetSafehouseManagers(safehouse);
     local username = player:getUsername();
     if not username then return false end;
 
@@ -89,7 +67,7 @@ function SafehouseClient.IsManagerEx(playerName, safehouse)
 end
 
 function SafehouseClient.GetSafehouseManagers(safehouse)
-    local key = safehouse:getId();
+    local key = SafehouseClient.GetSafehouseKey(safehouse);
     if not key then return {} end;
     
     if not SafehouseManagersCache[key] then return {} end;
@@ -100,7 +78,7 @@ end
 function SafehouseClient.GetRemainingManagerSlots(safehouse)
     local maxManagers = SANDBOX_OPTIONS:getOptionByName("SafehouseLine.MaxManagers"):getValue(); 
 
-    local key = safehouse:getId();
+    local key = SafehouseClient.GetSafehouseKey(safehouse);
     if not key then return  end;
     
     if not SafehouseManagersCache[key] then return maxManagers end;
@@ -111,7 +89,21 @@ function SafehouseClient.GetRemainingManagerSlots(safehouse)
     return maxManagers - #managersForSafehouse;
 end
 
-Events.OnReceiveGlobalModData.Add(SafehouseClient.OnReceiveGlobalModData);
+function SafehouseClient.GetSafehouseKey(safehouse)
+    if not safehouse then return nil end;
 
+    return string.format("%s|%d-%d-%d", safehouse:getTitle(), safehouse:getX(), safehouse:getY(), safehouse:getW());
+end
+
+
+function SafehouseClient.OnCreatePlayer(playerNum, player)
+    print("OnCreatePlayer - request manager safehouse data.");
+    ModData.request("SafehouseLine_Managers");
+end
+
+
+Events.OnReceiveGlobalModData.Add(SafehouseClient.OnReceiveGlobalModData);
+Events.OnInitGlobalModData.Add(SafehouseClient.OnInitGlobalModData);
+Events.OnCreatePlayer.Add(SafehouseClient.OnCreatePlayer);
 
 return SafehouseClient;

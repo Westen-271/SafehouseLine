@@ -67,6 +67,19 @@ function ISSafehouseUI:canAddManagers()
     return self:isOwner() or self:hasPrivilegedAccessLevel();
 end
 
+local originalUpdateButtons = ISSafehouseUI.updateButtons;
+function ISSafehouseUI:updateButtons()
+    local isOwner = self:isOwner();
+    local hasPrivilegedAccessLevel = self:hasPrivilegedAccessLevel();
+    self.releaseSafehouse:setVisible(isOwner or hasPrivilegedAccessLevel);
+    self.changeOwnership:setVisible(isOwner or hasPrivilegedAccessLevel);
+    self.removePlayer.enable = isOwner or hasPrivilegedAccessLevel or SafehouseClient.IsManager(self.player, self.safehouse);
+    self.addPlayer.enable = isOwner or hasPrivilegedAccessLevel or SafehouseClient.IsManager(self.player, self.safehouse);
+    self.changeTitle.enable = isOwner or hasPrivilegedAccessLevel;
+    self.quitSafehouse:setVisible(not isOwner and self.safehouse:getPlayers():contains(self.player:getUsername()));
+
+end
+
 function ISSafehouseUI:updateManagerButtons()
     -- 1. Is there a player selected?
     if not self.playerList.selected or self.playerList.selected == 0 then return end;
@@ -74,7 +87,10 @@ function ISSafehouseUI:updateManagerButtons()
     local selected = self.playerList.selected;
 
     -- Get player from selected.
-    local managerItem = self.playerList.items[selected].item;
+    if not self.playerList.items then return end;
+    if not self.playerList.items[selected] then return end;
+
+    local managerItem = self.playerList.items[selected].item or nil;
     if not managerItem then return end;
 
     -- 2. If selected, are they a manager?
@@ -109,6 +125,11 @@ function ISSafehouseUI:updateManagerButtons()
     if self:canAddManagers() then
         self.mgrBtn.enable = true;
     end
+
+    -- Now check if we can reactivate the add player for managers.
+    if SafehouseClient.IsManager(getPlayer(), self.safehouse) then
+        self.addPlayer.enable = true;
+    end
 end
 
 
@@ -120,7 +141,11 @@ function ISSafehouseUI:drawPlayers(y, item, alt)
         self:drawRect(0, (y), self:getWidth(), self.itemheight - 1, 0.3, 0.7, 0.35, 0.15);
     end
 
-    self:drawText(item.text, 10, y + 2, 1, 1, 1, a, self.font);
+    if item.item.isManager and item.item.isManager == true then
+        self:drawText(item.text .. " - Manager", 10, y + 2, 1, 1, 1, a, self.font);
+    else
+        self:drawText(item.text, 10, y + 2, 1, 1, 1, a, self.font);
+    end
 
     return y + self.itemheight;
 end
@@ -133,6 +158,7 @@ end
 local vanillaSafehouseFunction = ISSafehouseUI.initialise;
 function ISSafehouseUI:initialise()
     vanillaSafehouseFunction(self);
+    ModData.request("SafehouseLine_Managers");
 
     local safehouse = self.safehouse;
     if not safehouse then return end;
@@ -159,7 +185,6 @@ end
 
 local vanillaPlayerListFunction = ISSafehouseUI.populateList;
 function ISSafehouseUI:populateList()
-    print("Override PopulateList");
 
     local selected = self.playerList.selected;
     self.playerList:clear();
@@ -170,14 +195,20 @@ function ISSafehouseUI:populateList()
         local newPlayer = {};
         newPlayer.name = self.safehouse:getPlayers():get(i);
 
-        local isManager = SafehouseClient.IsManagerEx(newPlayer.name, self.safehouse);
+        local player = getPlayerFromUsername(newPlayer.name);
+        if not player then return end;
+        
+        print(newPlayer);
+        print(SafehouseClient);
+        print(SafehouseClient.IsManager);
+        print(player);
+        print(self.safehouse);
+        newPlayer.isManager = SafehouseClient.IsManager(player, self.safehouse);
+            
+        print("New player name: " .. newPlayer.name);
 
-        if newPlayer.name ~= self.safehouse:getOwner() or isDebugEnabled() then
-            if isManager then
-                self.playerList:addItem(tostring(newPlayer.name .. " - Manager"), newPlayer);
-            else
-                self.playerList:addItem(newPlayer.name, newPlayer);
-            end
+        if newPlayer.name ~= self.safehouse:getOwner() then
+            self.playerList:addItem(newPlayer.name, newPlayer);
         end;
     end;
 
