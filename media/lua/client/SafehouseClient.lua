@@ -10,7 +10,6 @@ function SafehouseClient.OnReceiveGlobalModData(key, data)
     if key ~= "SafehouseLine_Managers" then return end;
 
     SafehouseManagersCache = data;
-    print("OnReceiveGlobalModData - updated SafehouseManagersCache on client.");
 
     if ISSafehouseUI.instance then
         ISSafehouseUI.instance:populateList();
@@ -97,7 +96,6 @@ end
 
 
 function SafehouseClient.OnCreatePlayer(playerNum, player)
-    print("OnCreatePlayer - request manager safehouse data.");
     ModData.request("SafehouseLine_Managers");
 end
 

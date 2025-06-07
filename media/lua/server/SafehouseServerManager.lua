@@ -64,14 +64,6 @@ function SaveSafehouseManagers()
         SafehouseManagers = {};
     end
 
-    for k, v in pairs(SafehouseManagers) do
-        print("Key: " .. tostring(k));
-        
-        for i, j in ipairs(SafehouseManagers[k]) do
-            print("i " .. tostring(i) .. ": " .. j);
-        end
-    end
-
     ModData.add("SafehouseLine_Managers", SafehouseManagers);
     ModData.transmit("SafehouseLine_Managers");
 
@@ -96,7 +88,7 @@ function RemoveManagerFromSafehouse(safehouseKey, managerName, issuerName)
 
     for i, v in ipairs(SafehouseManagers[safehouseKey]) do
         local iteratedManager = SafehouseManagers[safehouseKey][i];
-        print("RemoveManagerFromSafehouse - " .. tostring(iteratedManager));
+
         if iteratedManager and iteratedManager == managerName then
             table.remove(SafehouseManagers[safehouseKey], i);
         end

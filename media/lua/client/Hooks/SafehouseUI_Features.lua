@@ -190,7 +190,6 @@ function ISSafehouseUI:populateList()
     self.playerList:clear();
 
     for i = 0, self.safehouse:getPlayers():size() - 1 do
-        print("Iterating through SH player " .. tostring(i));
 
         local newPlayer = {};
         newPlayer.name = self.safehouse:getPlayers():get(i);
@@ -198,15 +197,8 @@ function ISSafehouseUI:populateList()
         local player = getPlayerFromUsername(newPlayer.name);
         if not player then return end;
         
-        print(newPlayer);
-        print(SafehouseClient);
-        print(SafehouseClient.IsManager);
-        print(player);
-        print(self.safehouse);
         newPlayer.isManager = SafehouseClient.IsManager(player, self.safehouse);
             
-        print("New player name: " .. newPlayer.name);
-
         if newPlayer.name ~= self.safehouse:getOwner() then
             self.playerList:addItem(newPlayer.name, newPlayer);
         end;
