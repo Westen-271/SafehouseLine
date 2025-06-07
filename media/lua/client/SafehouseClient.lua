@@ -10,11 +10,42 @@ function SafehouseClient.OnReceiveGlobalModData(key, data)
 end
 
 function SafehouseClient.AddSafehouseManager(safehouse, newManager)
-    sendClientCommand(getPlayer(), "SafehouseLine", "AddSafehouseManager", { safehouse = safehouse, manager = newManager:getUsername(), issuer = getPlayer():getUsername() });
+    -- We need to do this both locally and server-side, because there may be a delay between the server receiving and transmitting
+    -- the updated mod data, which then will cause a discrepenacy in the UI.
+    -- If it is faster than the time to render the UI, then this will not be a problem as it will be overwritten anyway.
+    if not safehouse then return end;
+    if not newManager then return end;
+
+    local id = safehouse:getId();
+    if not id then return end;
+
+    if not SafehouseManagersCache[id] then
+        SafehouseManagersCache[id] = {};
+    end
+
+    table.insert(SafehouseManagersCache[id], newManager:getUsername());
+
+    sendClientCommand(getPlayer(), "SafehouseLine", "AddSafehouseManager", { safehouse = id, manager = newManager:getUsername(), issuer = getPlayer():getUsername() });
 end
 
 function SafehouseClient.RemoveSafehouseManager(safehouse, newManager)
-    sendClientCommand(getPlayer(), "SafehouseLine", "RemoveSafehouseManager", { safehouse = safehouse, manager = newManager:getUsername(), issuer = getPlayer():getUsername() });
+    if not safehouse then return end;
+    if not newManager then return end;
+
+    local id = safehouse:getId();
+    if not id then return end;
+
+    if not SafehouseManagersCache[id] then
+        SafehouseManagersCache[id] = {};
+    end
+
+    for i, mgr in ipairs(SafehouseManagersCache[id]) do
+        if mgr == newManager:getUsername() then
+            table.remove(SafehouseManagersCache[id], i);
+        end
+    end
+
+    sendClientCommand(getPlayer(), "SafehouseLine", "RemoveSafehouseManager", { safehouse = id, manager = newManager:getUsername(), issuer = getPlayer():getUsername() });
 end
 
 -------

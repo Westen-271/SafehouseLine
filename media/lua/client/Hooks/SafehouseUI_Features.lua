@@ -5,10 +5,12 @@ if isServer() then return end;
 
 local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small);
 
-function ISSafehouseUI:onClickAddManager(button)
-    print("OnClickManager");
-    print(self.playerList.selected);
+local SANDBOX_OPTIONS = getSandboxOptions();
 
+local ADD_LEN = getTextManager():MeasureStringX(UIFont.Small, "Add Manager") + 5;
+local REMOVE_LEN = getTextManager():MeasureStringX(UIFont.Small, "Remove Manager") + 5;
+
+function ISSafehouseUI:onClickAddManager(button)
     -- Find player and check if they are in game.
     local selected = self.playerList.selected;
 
@@ -19,26 +21,69 @@ function ISSafehouseUI:onClickAddManager(button)
     local matchingPlayer = getPlayerFromUsername(selectedName);
     if not matchingPlayer then return end; -- They have likely DCed or crashed between selecting and clicking accept (rare edge case).
 
-    SafehouseClient.AddManagerToSafehouse(self.safehouse, matchingPlayer);
+    SafehouseClient.AddSafehouseManager(self.safehouse, matchingPlayer);
+
     self:populateList();
+    self.playerList:onMouseUp(getMouseX(), getMouseY());
 end 
 
-function ISSafehouseUI:onClickManagementPanel(button)
-end 
+function ISSafehouseUI:onClickRemoveManager(button)
+    -- Find player and check if they are in game.
+    local selected = self.playerList.selected;
 
-function ISSafehouseUI:onMouseUp(x, y) -- NOTE, the self of this is the playerList itself!
-    print("SafehouseLine - onMouseUp");
+    local selectedName = self.playerList.items[selected].item.name;
+    if not selectedName then return end;
+
+    -- Check if player is valid.
+    local matchingPlayer = getPlayerFromUsername(selectedName);
+    if not matchingPlayer then return end; -- They have likely DCed or crashed between selecting and clicking accept (rare edge case).
+
+    SafehouseClient.RemoveSafehouseManager(self.safehouse, matchingPlayer);
+
+    self:populateList();
+    self.playerList:onMouseDown(getMouseX(), getMouseY());
+end
+
+function ISSafehouseUI:onMouseDown_List(x, y) -- NOTE, the self of this is the playerList itself!
+    print("SafehouseLine - onMouseDown");
+
+    local row = self:rowAt(x, y);
+    if not row or row == -1 then return; end
+
+    if not self:isMouseOverScrollBar() then
+        self.selected = row;
+
+    end
 
     local selected = self.selected;
-    if selected == 0 then return end;
 
     local selectedPlayer = self.items[selected].item;
     if not selectedPlayer then return end;
 
-    print(selectedPlayer.name);
+    -- First, are they already a manager?
+    if SafehouseClient.IsManagerEx(selectedPlayer.name, self.parent.safehouse) and self.parent:canAddManagers() then
+        self.parent.mgrBtn.title = "Remove Manager";
+        self.parent.mgrBtn:setWidth(REMOVE_LEN);
+        self.parent.mgrBtn.onclick = ISSafehouseUI.onClickRemoveManager;
+        return;
+    end
+
+    -- Reset button data for clarity.
+    self.parent.mgrBtn.title = "Add Manager";
+    self.parent.mgrBtn:setWidth(ADD_LEN);
+    self.parent.mgrBtn.onclick = ISSafehouseUI.onClickAddManager;
+
+    -- If no, then make sure managers can be added.
+    local maxManagers = SANDBOX_OPTIONS:getOptionByName("SafehouseLine.MaxManagers"):getValue(); 
+    local managersForSafehouse = SafehouseClient.GetSafehouseManagers(self.parent.safehouse);
+
+
+    if #managersForSafehouse >= maxManagers then
+        self.parent.mgrBtn.tooltip = string.format("<RED>%d of %d managers.", managersForSafehouse, maxManagers);
+        return;
+    end
 
     if not SafehouseClient.IsManagerEx(selectedPlayer.name, self.parent.safehouse) and self.parent:canAddManagers() then
-        print("Player is not manager and have permission to add manager.");
         self.parent.mgrBtn.enable = true;
     end
 end
@@ -53,12 +98,8 @@ end
     Then inject our own features.
 --]]
 local vanillaSafehouseFunction = ISSafehouseUI.initialise;
-
 function ISSafehouseUI:initialise()
     vanillaSafehouseFunction(self);
-
-    local sandboxOptions = getSandboxOptions();
-    if not sandboxOptions then return end;
 
     local safehouse = self.safehouse;
     if not safehouse then return end;
@@ -72,18 +113,13 @@ function ISSafehouseUI:initialise()
     self:addChild(mgrBtn);
 
     self.mgrBtn = mgrBtn;
-
-    local maxManagers = sandboxOptions:getOptionByName("SafehouseLine.MaxManagers"):getValue(); 
-    local managersForSafehouse = SafehouseClient.GetSafehouseManagers(safehouse);
-
     self.mgrBtn.enable = false;
 
     ---
 
     -- Override vanilla functionality to allow managers to add players.
     self.addPlayer.enable = self:isOwner() or self:hasPrivilegedAccessLevel() or SafehouseClient.IsManager(getPlayer(), self.safehouse);
-
-    self.playerList.onMouseUp = self.onMouseUp;
+    self.playerList.onMouseDown = self.onMouseDown_List;
 end
 
 local vanillaPlayerListFunction = ISSafehouseUI.populateList;
@@ -98,8 +134,8 @@ function ISSafehouseUI:populateList()
 
         local lineStr = newPlayer.name;
 
-        if SafehouseClient.IsManager(newPlayer) then
-            lineStr = lineStr .. (" - Manager");
+        if newPlayer.isManager then
+            lineStr = lineStr .. " - Manager";
         end
 
         if newPlayer.name ~= self.safehouse:getOwner() or isDebugEnabled() then
