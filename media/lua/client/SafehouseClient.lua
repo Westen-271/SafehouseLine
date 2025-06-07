@@ -19,6 +19,37 @@ end
 
 -------
 
+function SafehouseClient.IsManager(player, safehouse)
+    if not player or not safehouse then return false end;
+
+    local mgrs = SafehouseClient.GetSafehouseManagers(safehouse);
+    local username = player:getUsername();
+    if not mgrs or #mgrs == 0 then return false end;
+
+    for i, v in ipairs(mgrs) do
+        if mgrs[i] == username then
+            return true;
+        end
+    end
+
+    return false;
+end
+
+function SafehouseClient.IsManagerEx(playerName, safehouse)
+    if not playerName or not safehouse then return false end;
+
+    local mgrs = SafehouseClient.GetSafehouseManagers(safehouse);
+    if not mgrs or #mgrs == 0 then return false end;
+
+    for i, v in ipairs(mgrs) do
+        if mgrs[i] == playerName then
+            return true;
+        end
+    end
+
+    return false;
+end
+
 function SafehouseClient.GetSafehouseManagers(safehouse)
     local key = safehouse:getId();
     if not key then return {} end;
