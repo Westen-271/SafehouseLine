@@ -84,11 +84,10 @@ function OnClientCommand(module, command, player, args)
     local safehouseId = tostring(args.safehouse); -- Allows giving either safehouse itself or the ID.
     if not safehouseId then return end;
 
-
     if command == "AddSafehouseManager" then
         AddManagerToSafehouse(safehouseId, args.manager, args.issuer);
     elseif command == "RemoveSafehouseManager" then
-        RemoveManagerToSafehouse(safehouseId, args.manager, args.issuer);
+        RemoveManagerFromSafehouse(safehouseId, args.manager, args.issuer);
     end
 end
 

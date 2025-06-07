@@ -4,6 +4,8 @@ SafehouseManagersCache = {};
 
 SafehouseClient = {};
 
+local SANDBOX_OPTIONS = getSandboxOptions();
+
 function SafehouseClient.OnReceiveGlobalModData(key, data)
     if key ~= "SafehouseLine_Managers" then return end;
     SafehouseManagersCache = data;
@@ -55,15 +57,9 @@ function SafehouseClient.IsManager(player, safehouse)
 
     local mgrs = SafehouseClient.GetSafehouseManagers(safehouse);
     local username = player:getUsername();
-    if not mgrs or #mgrs == 0 then return false end;
+    if not username then return false end;
 
-    for i, v in ipairs(mgrs) do
-        if mgrs[i] == username then
-            return true;
-        end
-    end
-
-    return false;
+    return SafehouseClient.IsManagerEx(username, safehouse);
 end
 
 function SafehouseClient.IsManagerEx(playerName, safehouse)
@@ -88,6 +84,20 @@ function SafehouseClient.GetSafehouseManagers(safehouse)
     if not SafehouseManagersCache[key] then return {} end;
 
     return SafehouseManagersCache[key];
+end
+
+function SafehouseClient.GetRemainingManagerSlots(safehouse)
+    local maxManagers = SANDBOX_OPTIONS:getOptionByName("SafehouseLine.MaxManagers"):getValue(); 
+
+    local key = safehouse:getId();
+    if not key then return  end;
+    
+    if not SafehouseManagersCache[key] then return maxManagers end;
+
+    local managersForSafehouse = SafehouseClient.GetSafehouseManagers(safehouse);
+    if not maxManagers or not managersForSafehouse then return maxManagers end;
+
+    return maxManagers - #managersForSafehouse;
 end
 
 Events.OnReceiveGlobalModData.Add(SafehouseClient.OnReceiveGlobalModData);
