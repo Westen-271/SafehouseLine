@@ -1,6 +1,8 @@
 require "ISUI/UserPanel/ISSafehouseUI";
 SafehouseClient = require("SafehouseClient");
 
+Events.ReceiveSafehouseInvite.Remove(ISSafehouseUI.ReceiveSafehouseInvite);
+
 if isServer() then return end;
 
 local FONT_HGT_SMALL = getTextManager():getFontHeight(UIFont.Small);
@@ -206,3 +208,27 @@ function ISSafehouseUI:populateList()
 
     self.playerList.selected = math.min(selected, #self.playerList.items);
 end
+
+
+--[[
+    OVERRIDE THE FUNCTION TO PREVENT SENDING IF HAS MULTIPLE SHs.
+--]]
+
+
+
+function SafehouseLine_ReceiveSafehouseInvite(safehouse, host)
+    if ISSafehouseUI.inviteDialogs[host] then
+        if ISSafehouseUI.inviteDialogs[host]:isReallyVisible() then return end
+        ISSafehouseUI.inviteDialogs[host] = nil
+    end
+
+    local modal = ISModalDialog:new(getCore():getScreenWidth() / 2 - 175,getCore():getScreenHeight() / 2 - 75, 350, 150, getText("IGUI_SafehouseUI_Invitation", host), true, nil, ISSafehouseUI.onAnswerSafehouseInvite);
+    modal:initialise()
+    modal:addToUIManager()
+    modal.safehouse = safehouse;
+    modal.host = host;
+    modal.moveWithMouse = true;
+    ISSafehouseUI.inviteDialogs[host] = modal
+end
+
+Events.ReceiveSafehouseInvite.Add(SafehouseLine_ReceiveSafehouseInvite);
